@@ -1018,6 +1018,31 @@ only entities or get only some of the components, this should be the preferred
 approach. Note that the entity can also be excluded from the parameter list if
 not required, but this won't improve performance for multi component views.
 
+As a side note, when using a single component view, the most common error is to
+invoke `get` with the type of the component as a template parameter. This is
+probably due to the fact that it's required for multi component views:
+
+```cpp
+auto view = registry.view<position, const velocity>();
+
+for(auto entity: view) {
+    const auto &vel = view.get<const velocity>(entity);
+    // ...
+}
+```
+
+However, in case of a single component view, `get` doesn't accept a template
+parameter, since it's implicitly defined by the view itself:
+
+```cpp
+auto view = registry.view<const renderable>();
+
+for(auto entity: view) {
+    const auto &renderable = view.get(entity);
+    // ...
+}
+```
+
 **Note**: prefer the `get` member function of a view instead of the `get` member
 function template of a registry during iterations, if possible. However, keep in
 mind that it works only with the components of the view itself.
@@ -1500,6 +1525,24 @@ standard library. If it's not clear, this is a great thing.
 As an example, this kind of iterators can be used in combination with
 `std::for_each` and `std::execution::par` to parallelize the visit and therefore
 the update of the components returned by a view or a group, as long as the
-constraints previously discussed are respected.<br/>
+constraints previously discussed are respected:
+
+```cpp
+auto view = registry.view<position, const velocity>();
+
+std::for_each(std::execution::par_unseq, view.begin(), view.end(), [&view](auto entity) {
+    // ...
+});
+```
+
 This can increase the throughput considerably, even without resorting to who
 knows what artifacts that are difficult to maintain over time.
+
+Unfortunately, because of the limitations of the current revision of the
+standard, the parallel `std::for_each` accepts only forward iterators. This
+means that the iterators provided by the library cannot return proxy objects as
+references and **must** return actual reference types instead.<br/>
+This may change in the future and the iterators will almost certainly return
+both the entities and a list of references to their components sooner or later.
+Multi-pass guarantee won't break in any case and the performance should even
+benefit from it further.

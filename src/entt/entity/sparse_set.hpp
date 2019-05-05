@@ -68,7 +68,7 @@ class sparse_set<Entity> {
         using direct_type = const std::vector<Entity>;
         using index_type = typename traits_type::difference_type;
 
-        iterator(direct_type *ref, index_type idx) ENTT_NOEXCEPT
+        iterator(direct_type *ref, const index_type idx) ENTT_NOEXCEPT
             : direct{ref}, index{idx}
         {}
 
@@ -163,7 +163,7 @@ class sparse_set<Entity> {
         index_type index;
     };
 
-    void assure(std::size_t page) {
+    void assure(const std::size_t page) {
         if(!(page < reverse.size())) {
             reverse.resize(page+1);
         }
@@ -175,7 +175,7 @@ class sparse_set<Entity> {
         }
     }
 
-    auto index(Entity entt) const ENTT_NOEXCEPT {
+    auto index(const Entity entt) const ENTT_NOEXCEPT {
         const auto identifier = entt & traits_type::entity_mask;
         const auto page = size_type(identifier / entt_per_page);
         const auto offset = size_type(identifier & (entt_per_page - 1));
@@ -216,9 +216,6 @@ public:
     /*! @brief Default destructor. */
     virtual ~sparse_set() ENTT_NOEXCEPT = default;
 
-    /*! @brief Default move assignment operator. @return This sparse set. */
-    sparse_set & operator=(sparse_set &&) = default;
-
     /**
      * @brief Copy assignment operator.
      * @param other The instance to copy from.
@@ -232,6 +229,9 @@ public:
 
         return *this;
     }
+
+    /*! @brief Default move assignment operator. @return This sparse set. */
+    sparse_set & operator=(sparse_set &&) = default;
 
     /**
      * @brief Increases the capacity of a sparse set.
@@ -459,8 +459,8 @@ public:
         ENTT_ASSERT(has(entt));
         auto [from_page, from_offset] = index(entt);
         auto [to_page, to_offset] = index(direct.back());
-        std::swap(direct[size_type(reverse[from_page].first[from_offset])], direct.back());
-        std::swap(reverse[from_page].first[from_offset], reverse[to_page].first[to_offset]);
+        direct[size_type(reverse[from_page].first[from_offset])] = direct.back();
+        reverse[to_page].first[to_offset] = reverse[from_page].first[from_offset];
         reverse[from_page].first[from_offset] = null;
         reverse[from_page].second--;
         direct.pop_back();
@@ -536,18 +536,6 @@ public:
         direct.clear();
     }
 
-    /**
-     * @brief Clones and returns a sparse set.
-     *
-     * The basic implementation of a sparse set is always copyable. Therefore,
-     * the returned instance is always valid.
-     *
-     * @return A fresh copy of the given sparse set.
-     */
-    virtual std::unique_ptr<sparse_set> clone() const {
-        return std::make_unique<sparse_set>(*this);
-    }
-
 private:
     std::vector<std::pair<std::unique_ptr<entity_type[]>, size_type>> reverse;
     std::vector<entity_type> direct;
@@ -588,7 +576,7 @@ class sparse_set<Entity, Type>: public sparse_set<Entity> {
         using instance_type = std::conditional_t<Const, const std::vector<Type>, std::vector<Type>>;
         using index_type = typename traits_type::difference_type;
 
-        iterator(instance_type *ref, index_type idx) ENTT_NOEXCEPT
+        iterator(instance_type *ref, const index_type idx) ENTT_NOEXCEPT
             : instances{ref}, index{idx}
         {}
 
@@ -690,7 +678,7 @@ class sparse_set<Entity, Type>: public sparse_set<Entity> {
         using instance_type = std::conditional_t<Const, const Type, Type>;
         using index_type = typename traits_type::difference_type;
 
-        iterator(instance_type *ref, index_type idx) ENTT_NOEXCEPT
+        iterator(instance_type *ref, const index_type idx) ENTT_NOEXCEPT
             : instance{ref}, index{idx}
         {}
 
@@ -1193,24 +1181,6 @@ public:
 
         if constexpr(!std::is_empty_v<object_type>) {
             instances.clear();
-        }
-    }
-
-    /**
-     * @brief Clones and returns a sparse set if possible.
-     *
-     * The extended implementation of a sparse set is copyable only if its
-     * object type is copyable. Because of that, this member functions isn't
-     * guaranteed to return always a valid pointer.
-     *
-     * @return A fresh copy of the given sparse set if its object type is
-     * copyable, an empty unique pointer otherwise.
-     */
-    std::unique_ptr<sparse_set<Entity>> clone() const override {
-        if constexpr(std::is_copy_constructible_v<object_type>) {
-            return std::make_unique<sparse_set>(*this);
-        } else {
-            return nullptr;
         }
     }
 
