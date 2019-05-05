@@ -28,6 +28,16 @@ TEST(HashedString, Functionalities) {
     ASSERT_NE(bar_hs, "foo"_hs);
 }
 
+TEST(HashedString, StringViewHelper) {
+    // confirm that string views can be hashed by the helper func.
+    const char *bar = "bar";
+    auto foo_hs = entt::hashed_string{bar};
+
+    std::string_view barview = bar;
+    auto view_hash = entt::hashed_string::to_value(barview);
+    ASSERT_EQ(foo_hs.value(), view_hash);
+}
+
 TEST(HashedString, Empty) {
     using hash_type = entt::hashed_string::hash_type;
 

@@ -60,12 +60,28 @@ class hashed_string {
     struct const_wrapper {
         // non-explicit constructor on purpose
         constexpr const_wrapper(const char *curr) ENTT_NOEXCEPT: str{curr} {}
+        // constexpr const_wrapper(std::string_view curr) ENTT_NOEXCEPT: str{curr} {}
         const char *str;
+    };
+
+    struct view_wrapper {
+        // explicit constructor on purpose
+        constexpr view_wrapper(const std::string_view curr) ENTT_NOEXCEPT: str{curr} {}
+        // constexpr const_wrapper(std::string_view curr) ENTT_NOEXCEPT: str{curr} {}
+        const std::string_view str;
     };
 
     // Fowler–Noll–Vo hash function v. 1a - the good
     inline static constexpr ENTT_ID_TYPE helper(ENTT_ID_TYPE partial, const char *curr) ENTT_NOEXCEPT {
         return curr[0] == 0 ? partial : helper((partial^curr[0])*traits_type::prime, curr+1);
+    }
+
+    // string_view implemenation
+    inline static constexpr ENTT_ID_TYPE helper(ENTT_ID_TYPE partial, std::string_view s) ENTT_NOEXCEPT {
+        for (uint i = 0; i < s.size(); ++i) {
+            partial = (partial^s[i])*traits_type::prime;
+        }
+        return partial;
     }
 
 public:
@@ -101,6 +117,10 @@ public:
         return helper(traits_type::offset, wrapper.str);
     }
 
+    inline static hash_type to_value(view_wrapper wrapper) ENTT_NOEXCEPT {
+        return helper(traits_type::offset, wrapper.str);
+    }
+
     /*! @brief Constructs an empty hashed string. */
     constexpr hashed_string() ENTT_NOEXCEPT
         : hash{}, str{nullptr}
@@ -124,6 +144,7 @@ public:
     constexpr hashed_string(const char (&curr)[N]) ENTT_NOEXCEPT
         : hash{helper(traits_type::offset, curr)}, str{curr}
     {}
+
 
     /**
      * @brief Explicit constructor on purpose to avoid constructing a hashed
@@ -173,7 +194,6 @@ private:
     hash_type hash;
     const char *str;
 };
-
 
 /**
  * @brief Compares two hashed strings.
