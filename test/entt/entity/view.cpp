@@ -510,7 +510,7 @@ TEST(MultiComponentView, ExcludedComponents) {
     registry.emplace<int>(e1, 1);
     registry.emplace<char>(e1);
 
-    const auto view = registry.view<int>(entt::exclude<char>);
+    const auto view = static_cast<const entt::registry&>(registry).view<int>(entt::exclude<char>);
 
     const auto e2 = registry.create();
     registry.emplace<int>(e2, 2);
