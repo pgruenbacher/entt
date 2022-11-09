@@ -517,6 +517,10 @@ public:
         use<index_of<Type>>();
     }
 
+    template<typename T>
+    [[nodiscard]] static constexpr bool has_component() {
+        return (std::is_same_v<T, Get> || ...);
+    }
     /**
      * @brief Forces a view to use a given element to drive iterations
      * @tparam Index Index of the element to use to drive iterations.
